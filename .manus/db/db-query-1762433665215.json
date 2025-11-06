@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE items \nCHANGE COLUMN requiresLot requires_lot TINYINT(1) NOT NULL DEFAULT 0,\nCHANGE COLUMN createdAt created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\nCHANGE COLUMN updatedAt updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 48Whp9Xsv8WPpcd.7572f0004a31 --database hsicTx2PxoLvZwefyscKJs --execute ALTER TABLE items \nCHANGE COLUMN requiresLot requires_lot TINYINT(1) NOT NULL DEFAULT 0,\nCHANGE COLUMN createdAt created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\nCHANGE COLUMN updatedAt updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1670
+}

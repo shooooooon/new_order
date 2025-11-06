@@ -1,0 +1,17 @@
+{
+  "query": "SELECT \n  (SELECT COUNT(*) FROM suppliers) as suppliers_count,\n  (SELECT COUNT(*) FROM items) as items_count,\n  (SELECT COUNT(*) FROM stockLots) as stock_lots_count,\n  (SELECT COUNT(*) FROM purchaseOrders) as purchase_orders_count,\n  (SELECT COUNT(*) FROM stockAdjustments) as stock_adjustments_count",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 48Whp9Xsv8WPpcd.7572f0004a31 --database hsicTx2PxoLvZwefyscKJs --execute SELECT \n  (SELECT COUNT(*) FROM suppliers) as suppliers_count,\n  (SELECT COUNT(*) FROM items) as items_count,\n  (SELECT COUNT(*) FROM stockLots) as stock_lots_count,\n  (SELECT COUNT(*) FROM purchaseOrders) as purchase_orders_count,\n  (SELECT COUNT(*) FROM stockAdjustments) as stock_adjustments_count",
+  "rows": [
+    {
+      "suppliers_count": "13",
+      "items_count": "6",
+      "stock_lots_count": "6",
+      "purchase_orders_count": "0",
+      "stock_adjustments_count": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "suppliers_count\titems_count\tstock_lots_count\tpurchase_orders_count\tstock_adjustments_count\n13\t6\t6\t0\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1511
+}
