@@ -24,6 +24,12 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      external: [
+        '@aws-sdk/client-s3',
+        '@aws-sdk/s3-request-presigner'
+      ]
+    }
   },
   server: {
     host: true,
