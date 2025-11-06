@@ -1,10 +1,11 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { z } from "zod";
+import * as db from "./db";
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -17,12 +18,260 @@ export const appRouter = router({
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  // ========== Suppliers ==========
+  suppliers: router({
+    list: protectedProcedure.query(async () => {
+      return await db.getAllSuppliers();
+    }),
+    
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getSupplierById(input.id);
+      }),
+    
+    create: protectedProcedure
+      .input(z.object({
+        code: z.string().min(1),
+        name: z.string().min(1),
+        contactPerson: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().email().optional().or(z.literal("")),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.createSupplier({
+          ...input,
+          email: input.email || undefined,
+        });
+        return { success: true };
+      }),
+    
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        code: z.string().min(1).optional(),
+        name: z.string().min(1).optional(),
+        contactPerson: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().email().optional().or(z.literal("")),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updateSupplier(id, {
+          ...data,
+          email: data.email || undefined,
+        });
+        return { success: true };
+      }),
+    
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteSupplier(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ========== Items ==========
+  items: router({
+    list: protectedProcedure
+      .input(z.object({ search: z.string().optional() }))
+      .query(async ({ input }) => {
+        return await db.getAllItems(input.search);
+      }),
+    
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getItemById(input.id);
+      }),
+    
+    create: protectedProcedure
+      .input(z.object({
+        code: z.string().min(1),
+        name: z.string().min(1),
+        unit: z.string().min(1).default("個"),
+        requiresLot: z.boolean().default(false),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.createItem(input);
+        return { success: true };
+      }),
+    
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        code: z.string().min(1).optional(),
+        name: z.string().min(1).optional(),
+        unit: z.string().min(1).optional(),
+        requiresLot: z.boolean().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updateItem(id, data);
+        return { success: true };
+      }),
+    
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteItem(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ========== Stock ==========
+  stock: router({
+    list: protectedProcedure.query(async () => {
+      return await db.getAllStockWithItems();
+    }),
+    
+    byItem: protectedProcedure
+      .input(z.object({ itemId: z.number() }))
+      .query(async ({ input }) => {
+        return await db.getStockLotsByItemId(input.itemId);
+      }),
+  }),
+
+  // ========== Purchase Orders ==========
+  purchaseOrders: router({
+    list: protectedProcedure
+      .input(z.object({ 
+        status: z.enum(["pending", "received"]).optional() 
+      }))
+      .query(async ({ input }) => {
+        return await db.getAllPurchaseOrders(input.status);
+      }),
+    
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const order = await db.getPurchaseOrderById(input.id);
+        if (!order) return null;
+        
+        const items = await db.getPurchaseOrderItems(input.id);
+        return { ...order, items };
+      }),
+    
+    create: protectedProcedure
+      .input(z.object({
+        supplierId: z.number(),
+        orderDate: z.date(),
+        expectedDeliveryDate: z.date(),
+        notes: z.string().optional(),
+        items: z.array(z.object({
+          itemId: z.number(),
+          lotNumber: z.string().optional(),
+          quantity: z.number().min(1),
+          unitPrice: z.number().optional(),
+        })),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Generate order number
+        const orderNumber = `PO-${Date.now()}`;
+        
+        // Create order
+        const result = await db.createPurchaseOrder({
+          orderNumber,
+          supplierId: input.supplierId,
+          orderDate: input.orderDate,
+          expectedDeliveryDate: input.expectedDeliveryDate,
+          orderedBy: ctx.user.id,
+          notes: input.notes,
+          status: "pending",
+        });
+        
+        const orderId = Number((result as any).insertId);
+        
+        // Create order items
+        for (const item of input.items) {
+          await db.createPurchaseOrderItem({
+            purchaseOrderId: orderId,
+            ...item,
+          });
+        }
+        
+        return { success: true, orderId };
+      }),
+    
+    receive: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        // Get order items
+        const orderItems = await db.getPurchaseOrderItems(input.id);
+        
+        // Create stock lots for each item
+        for (const item of orderItems) {
+          await db.createStockLot({
+            itemId: item.itemId,
+            lotNumber: item.lotNumber || undefined,
+            quantity: item.quantity,
+            receivedDate: new Date(),
+          });
+          
+          // Record adjustment
+          await db.createStockAdjustment({
+            itemId: item.itemId,
+            lotId: null,
+            quantityChange: item.quantity,
+            reason: "入荷処理",
+            adjustedBy: ctx.user.id,
+            notes: `発注番号: ${input.id}`,
+          });
+        }
+        
+        // Update order status
+        await db.updatePurchaseOrderStatus(input.id, "received");
+        
+        return { success: true };
+      }),
+    
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deletePurchaseOrder(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ========== Stock Adjustments ==========
+  stockAdjustments: router({
+    list: protectedProcedure.query(async () => {
+      return await db.getAllStockAdjustments();
+    }),
+    
+    create: protectedProcedure
+      .input(z.object({
+        itemId: z.number(),
+        lotId: z.number().optional(),
+        quantityChange: z.number(),
+        reason: z.string().min(1),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Create adjustment record
+        await db.createStockAdjustment({
+          ...input,
+          adjustedBy: ctx.user.id,
+        });
+        
+        // Update stock lot quantity if lotId is provided
+        if (input.lotId) {
+          const lots = await db.getStockLotsByItemId(input.itemId);
+          const lot = lots.find(l => l.id === input.lotId);
+          if (lot) {
+            const newQuantity = lot.quantity + input.quantityChange;
+            await db.updateStockLotQuantity(input.lotId, Math.max(0, newQuantity));
+          }
+        }
+        
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

@@ -1,11 +1,25 @@
-import { eq } from "drizzle-orm";
+import { eq, desc, and, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { 
+  InsertUser, 
+  users,
+  suppliers,
+  items,
+  stockLots,
+  purchaseOrders,
+  purchaseOrderItems,
+  stockAdjustments,
+  InsertSupplier,
+  InsertItem,
+  InsertStockLot,
+  InsertPurchaseOrder,
+  InsertPurchaseOrderItem,
+  InsertStockAdjustment
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -89,4 +103,265 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// ========== Suppliers ==========
+
+export async function getAllSuppliers() {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(suppliers).orderBy(desc(suppliers.createdAt));
+}
+
+export async function getSupplierById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(suppliers).where(eq(suppliers.id, id)).limit(1);
+  return result[0];
+}
+
+export async function createSupplier(data: InsertSupplier) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(suppliers).values(data);
+  return result;
+}
+
+export async function updateSupplier(id: number, data: Partial<InsertSupplier>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(suppliers).set(data).where(eq(suppliers.id, id));
+}
+
+export async function deleteSupplier(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(suppliers).where(eq(suppliers.id, id));
+}
+
+// ========== Items ==========
+
+export async function getAllItems(search?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  if (search) {
+    return await db.select().from(items)
+      .where(or(
+        like(items.code, `%${search}%`),
+        like(items.name, `%${search}%`)
+      ))
+      .orderBy(desc(items.createdAt));
+  }
+  
+  return await db.select().from(items).orderBy(desc(items.createdAt));
+}
+
+export async function getItemById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(items).where(eq(items.id, id)).limit(1);
+  return result[0];
+}
+
+export async function createItem(data: InsertItem) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(items).values(data);
+  return result;
+}
+
+export async function updateItem(id: number, data: Partial<InsertItem>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(items).set(data).where(eq(items.id, id));
+}
+
+export async function deleteItem(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(items).where(eq(items.id, id));
+}
+
+// ========== Stock Lots ==========
+
+export async function getStockLotsByItemId(itemId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(stockLots)
+    .where(eq(stockLots.itemId, itemId))
+    .orderBy(desc(stockLots.receivedDate));
+}
+
+export async function getAllStockWithItems() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select({
+    id: stockLots.id,
+    itemId: stockLots.itemId,
+    itemCode: items.code,
+    itemName: items.name,
+    unit: items.unit,
+    requiresLot: items.requiresLot,
+    lotNumber: stockLots.lotNumber,
+    quantity: stockLots.quantity,
+    receivedDate: stockLots.receivedDate,
+    expiryDate: stockLots.expiryDate,
+  })
+  .from(stockLots)
+  .leftJoin(items, eq(stockLots.itemId, items.id))
+  .orderBy(desc(stockLots.receivedDate));
+}
+
+export async function createStockLot(data: InsertStockLot) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(stockLots).values(data);
+  return result;
+}
+
+export async function updateStockLotQuantity(id: number, quantity: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(stockLots).set({ quantity }).where(eq(stockLots.id, id));
+}
+
+// ========== Purchase Orders ==========
+
+export async function getAllPurchaseOrders(status?: "pending" | "received") {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const query = db.select({
+    id: purchaseOrders.id,
+    orderNumber: purchaseOrders.orderNumber,
+    supplierId: purchaseOrders.supplierId,
+    supplierName: suppliers.name,
+    orderDate: purchaseOrders.orderDate,
+    expectedDeliveryDate: purchaseOrders.expectedDeliveryDate,
+    status: purchaseOrders.status,
+    orderedBy: purchaseOrders.orderedBy,
+    orderedByName: users.name,
+    notes: purchaseOrders.notes,
+    createdAt: purchaseOrders.createdAt,
+  })
+  .from(purchaseOrders)
+  .leftJoin(suppliers, eq(purchaseOrders.supplierId, suppliers.id))
+  .leftJoin(users, eq(purchaseOrders.orderedBy, users.id));
+  
+  if (status) {
+    return await query.where(eq(purchaseOrders.status, status)).orderBy(desc(purchaseOrders.orderDate));
+  }
+  
+  return await query.orderBy(desc(purchaseOrders.orderDate));
+}
+
+export async function getPurchaseOrderById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select({
+    id: purchaseOrders.id,
+    orderNumber: purchaseOrders.orderNumber,
+    supplierId: purchaseOrders.supplierId,
+    supplierName: suppliers.name,
+    orderDate: purchaseOrders.orderDate,
+    expectedDeliveryDate: purchaseOrders.expectedDeliveryDate,
+    status: purchaseOrders.status,
+    orderedBy: purchaseOrders.orderedBy,
+    orderedByName: users.name,
+    notes: purchaseOrders.notes,
+    createdAt: purchaseOrders.createdAt,
+  })
+  .from(purchaseOrders)
+  .leftJoin(suppliers, eq(purchaseOrders.supplierId, suppliers.id))
+  .leftJoin(users, eq(purchaseOrders.orderedBy, users.id))
+  .where(eq(purchaseOrders.id, id))
+  .limit(1);
+  
+  return result[0];
+}
+
+export async function getPurchaseOrderItems(orderId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select({
+    id: purchaseOrderItems.id,
+    purchaseOrderId: purchaseOrderItems.purchaseOrderId,
+    itemId: purchaseOrderItems.itemId,
+    itemCode: items.code,
+    itemName: items.name,
+    unit: items.unit,
+    requiresLot: items.requiresLot,
+    lotNumber: purchaseOrderItems.lotNumber,
+    quantity: purchaseOrderItems.quantity,
+    unitPrice: purchaseOrderItems.unitPrice,
+  })
+  .from(purchaseOrderItems)
+  .leftJoin(items, eq(purchaseOrderItems.itemId, items.id))
+  .where(eq(purchaseOrderItems.purchaseOrderId, orderId));
+}
+
+export async function createPurchaseOrder(data: InsertPurchaseOrder) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(purchaseOrders).values(data);
+  return result;
+}
+
+export async function createPurchaseOrderItem(data: InsertPurchaseOrderItem) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(purchaseOrderItems).values(data);
+  return result;
+}
+
+export async function updatePurchaseOrderStatus(id: number, status: "pending" | "received") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(purchaseOrders).set({ status }).where(eq(purchaseOrders.id, id));
+}
+
+export async function deletePurchaseOrder(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Delete order items first
+  await db.delete(purchaseOrderItems).where(eq(purchaseOrderItems.purchaseOrderId, id));
+  // Then delete the order
+  await db.delete(purchaseOrders).where(eq(purchaseOrders.id, id));
+}
+
+// ========== Stock Adjustments ==========
+
+export async function getAllStockAdjustments() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select({
+    id: stockAdjustments.id,
+    itemId: stockAdjustments.itemId,
+    itemCode: items.code,
+    itemName: items.name,
+    lotId: stockAdjustments.lotId,
+    lotNumber: stockLots.lotNumber,
+    quantityChange: stockAdjustments.quantityChange,
+    reason: stockAdjustments.reason,
+    adjustedBy: stockAdjustments.adjustedBy,
+    adjustedByName: users.name,
+    adjustedAt: stockAdjustments.adjustedAt,
+    notes: stockAdjustments.notes,
+  })
+  .from(stockAdjustments)
+  .leftJoin(items, eq(stockAdjustments.itemId, items.id))
+  .leftJoin(stockLots, eq(stockAdjustments.lotId, stockLots.id))
+  .leftJoin(users, eq(stockAdjustments.adjustedBy, users.id))
+  .orderBy(desc(stockAdjustments.adjustedAt));
+}
+
+export async function createStockAdjustment(data: InsertStockAdjustment) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(stockAdjustments).values(data);
+  return result;
+}
