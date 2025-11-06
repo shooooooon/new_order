@@ -43,11 +43,11 @@ export const items = mysqlTable("items", {
   id: int("id").autoincrement().primaryKey(),
   code: varchar("code", { length: 50 }).notNull().unique(),
   name: varchar("name", { length: 255 }).notNull(),
-  unit: varchar("unit", { length: 20 }).notNull().default("個"),
-  requiresLot: boolean("requiresLot").notNull().default(false),
+  unit: varchar("unit", { length: 20 }).notNull(),
+  requiresLot: boolean("requires_lot").default(false).notNull(),
   notes: text("notes"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
 
 export type Item = typeof items.$inferSelect;

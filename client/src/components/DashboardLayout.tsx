@@ -21,13 +21,14 @@ import {
 } from "@/components/ui/sidebar";
 import { APP_LOGO, APP_TITLE, getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Package, Users, Warehouse, ShoppingCart, ClipboardList, LogOut, PanelLeft } from "lucide-react";
+import { Package, Users, Warehouse, ShoppingCart, ClipboardList, LogOut, PanelLeft, LayoutDashboard } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
 const menuItems = [
+  { icon: LayoutDashboard, label: "ダッシュボード", path: "/dashboard" },
   { icon: Package, label: "品目管理", path: "/items" },
   { icon: Users, label: "仕入先管理", path: "/suppliers" },
   { icon: Warehouse, label: "在庫一覧", path: "/stock" },

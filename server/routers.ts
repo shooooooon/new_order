@@ -238,6 +238,42 @@ export const appRouter = router({
       }),
   }),
 
+  // ========== CSV Export ==========
+  export: router({ items: protectedProcedure.query(async () => {
+      const items = await db.getAllItems();
+      const csv = [
+        'コード,品目名,単位,ロット管理,備考',
+        ...items.map(item => 
+          `${item.code},${item.name},${item.unit},${item.requiresLot ? '必要' : '不要'},"${item.notes || ''}"`
+        )
+      ].join('\n');
+      return { csv, filename: `items_${new Date().toISOString().split('T')[0]}.csv` };
+    }),
+    
+    suppliers: protectedProcedure.query(async () => {
+      const suppliers = await db.getAllSuppliers();
+      const csv = [
+        'コード,仕入先名,連絡先,住所,備考',
+        ...suppliers.map(s => 
+          `${s.code},${s.name},"${s.contactPerson || ''}","${s.phone || ''}","${s.notes || ''}"`
+        )
+      ].join('\n');
+      return { csv, filename: `suppliers_${new Date().toISOString().split('T')[0]}.csv` };
+    }),
+    
+    stock: protectedProcedure.query(async () => {
+      const stock = await db.getAllStockWithItems();
+      
+      const csv = [
+        '品目コード,品目名,ロット番号,数量,単位,入荷日',
+        ...stock.map((s: any) => {
+          return `${s.item.code},${s.item.name},${s.lotNumber || '-'},${s.quantity},${s.item.unit},${s.receivedDate?.toISOString().split('T')[0] || '-'}`;
+        })
+      ].join('\n');
+      return { csv, filename: `stock_${new Date().toISOString().split('T')[0]}.csv` };
+    }),
+  }),
+
   // ========== Stock Adjustments ==========
   stockAdjustments: router({
     list: protectedProcedure.query(async () => {

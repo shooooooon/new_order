@@ -12,11 +12,17 @@ import Stock from "./pages/Stock";
 import PurchaseOrders from "./pages/PurchaseOrders";
 import PurchaseOrderDetail from "./pages/PurchaseOrderDetail";
 import StockAdjustments from "./pages/StockAdjustments";
+import Dashboard from "./pages/Dashboard";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/dashboard"}>
+        <DashboardLayout>
+          <Dashboard />
+        </DashboardLayout>
+      </Route>
       <Route path={"/items"}>
         <DashboardLayout>
           <Items />

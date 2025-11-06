@@ -8,9 +8,12 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { Loader2 } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function Stock() {
+  const utils = trpc.useUtils();
   const { data: stockList, isLoading } = trpc.stock.list.useQuery();
 
   const formatDate = (date: Date | string | null) => {
@@ -18,10 +21,28 @@ export default function Stock() {
     return new Date(date).toLocaleDateString("ja-JP");
   };
 
+  const handleExportCSV = async () => {
+    try {
+      const result = await utils.client.export.stock.query();
+      const blob = new Blob([result.csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = result.filename;
+      link.click();
+      toast.success('CSVファイルをダウンロードしました');
+    } catch (error) {
+      toast.error('エクスポートに失敗しました');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">在庫一覧</h1>
+        <Button variant="outline" onClick={handleExportCSV}>
+          <Download className="h-4 w-4 mr-2" />
+          CSVエクスポート
+        </Button>
       </div>
 
       {isLoading ? (

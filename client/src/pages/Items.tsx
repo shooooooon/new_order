@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Download } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -96,11 +96,30 @@ export default function Items() {
     }
   };
 
+  const handleExportCSV = async () => {
+    try {
+      const result = await utils.client.export.items.query();
+      const blob = new Blob([result.csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = result.filename;
+      link.click();
+      toast.success('CSVファイルをダウンロードしました');
+    } catch (error) {
+      toast.error('エクスポートに失敗しました');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">品目管理</h1>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportCSV}>
+            <Download className="h-4 w-4 mr-2" />
+            CSVエクスポート
+          </Button>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -145,7 +164,8 @@ export default function Items() {
               </Button>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       <div>
