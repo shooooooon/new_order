@@ -6,6 +6,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
 import Home from "./pages/Home";
+import Shipments from "./pages/Shipments";
+import ShipmentDetail from "./pages/ShipmentDetail";
 import Items from "./pages/Items";
 import Suppliers from "./pages/Suppliers";
 import Stock from "./pages/Stock";
@@ -47,6 +49,18 @@ function Router() {
         {(params) => (
           <DashboardLayout>
             <PurchaseOrderDetail id={Number(params.id)} />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path={"/shipments"}>
+        <DashboardLayout>
+          <Shipments />
+        </DashboardLayout>
+      </Route>
+      <Route path={"/shipments/:id"}>
+        {(params) => (
+          <DashboardLayout>
+            <ShipmentDetail id={Number(params.id)} />
           </DashboardLayout>
         )}
       </Route>

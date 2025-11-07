@@ -274,6 +274,87 @@ export const appRouter = router({
     }),
   }),
 
+  // ========== Shipments ==========
+  shipments: router({
+    list: protectedProcedure.query(async () => {
+      return await db.getAllShipments();
+    }),
+    
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const shipment = await db.getShipmentById(input.id);
+        if (!shipment) return null;
+        
+        const items = await db.getShipmentItems(input.id);
+        return { ...shipment, items };
+      }),
+    
+    create: protectedProcedure
+      .input(z.object({
+        shipmentDate: z.date(),
+        destination: z.string().min(1),
+        notes: z.string().optional(),
+        items: z.array(z.object({
+          itemId: z.number(),
+          lotId: z.number().optional(),
+          quantity: z.number().min(1),
+        })),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Generate shipment number
+        const shipmentNumber = `SHIP-${Date.now()}`;
+        
+        // Create shipment
+        const result = await db.createShipment({
+          shipmentNumber,
+          shipmentDate: input.shipmentDate,
+          destination: input.destination,
+          shippedBy: ctx.user.id,
+          notes: input.notes,
+        });
+        
+        const shipmentId = Number((result as any).insertId);
+        
+        // Create shipment items and reduce stock
+        for (const item of input.items) {
+          await db.createShipmentItem({
+            shipmentId,
+            ...item,
+          });
+          
+          // Reduce stock quantity
+          if (item.lotId) {
+            const lots = await db.getStockLotsByItemId(item.itemId);
+            const lot = lots.find(l => l.id === item.lotId);
+            if (lot) {
+              const newQuantity = lot.quantity - item.quantity;
+              await db.updateStockLotQuantity(item.lotId, Math.max(0, newQuantity));
+            }
+          }
+          
+          // Record adjustment
+          await db.createStockAdjustment({
+            itemId: item.itemId,
+            lotId: item.lotId || null,
+            quantityChange: -item.quantity,
+            reason: "出荷処理",
+            adjustedBy: ctx.user.id,
+            notes: `出荷番号: ${shipmentNumber}`,
+          });
+        }
+        
+        return { success: true, shipmentId };
+      }),
+    
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteShipment(input.id);
+        return { success: true };
+      }),
+  }),
+
   // ========== Stock Adjustments ==========
   stockAdjustments: router({
     list: protectedProcedure.query(async () => {

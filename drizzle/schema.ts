@@ -123,3 +123,36 @@ export const stockAdjustments = mysqlTable("stockAdjustments", {
 
 export type StockAdjustment = typeof stockAdjustments.$inferSelect;
 export type InsertStockAdjustment = typeof stockAdjustments.$inferInsert;
+
+/**
+ * 出荷ヘッダテーブル
+ */
+export const shipments = mysqlTable("shipments", {
+  id: int("id").autoincrement().primaryKey(),
+  shipmentNumber: varchar("shipmentNumber", { length: 50 }).notNull().unique(),
+  shipmentDate: timestamp("shipmentDate").notNull(),
+  destination: varchar("destination", { length: 255 }).notNull(),
+  shippedBy: int("shippedBy").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Shipment = typeof shipments.$inferSelect;
+export type InsertShipment = typeof shipments.$inferInsert;
+
+/**
+ * 出荷明細テーブル
+ */
+export const shipmentItems = mysqlTable("shipmentItems", {
+  id: int("id").autoincrement().primaryKey(),
+  shipmentId: int("shipmentId").notNull(),
+  itemId: int("itemId").notNull(),
+  lotId: int("lotId"),
+  quantity: int("quantity").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ShipmentItem = typeof shipmentItems.$inferSelect;
+export type InsertShipmentItem = typeof shipmentItems.$inferInsert;

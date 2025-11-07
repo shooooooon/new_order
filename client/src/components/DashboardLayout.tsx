@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { APP_LOGO, APP_TITLE, getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Package, Users, Warehouse, ShoppingCart, ClipboardList, LogOut, PanelLeft, LayoutDashboard } from "lucide-react";
+import { Package, Users, Warehouse, ShoppingCart, ClipboardList, LogOut, PanelLeft, LayoutDashboard, Truck } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -33,6 +33,7 @@ const menuItems = [
   { icon: Users, label: "仕入先管理", path: "/suppliers" },
   { icon: Warehouse, label: "在庫一覧", path: "/stock" },
   { icon: ShoppingCart, label: "発注管理", path: "/purchase-orders" },
+  { icon: Truck, label: "出荷管理", path: "/shipments" },
   { icon: ClipboardList, label: "在庫調整", path: "/stock-adjustments" },
 ];
 

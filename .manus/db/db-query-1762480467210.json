@@ -1,0 +1,43 @@
+{
+  "query": "SHOW TABLES;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 48Whp9Xsv8WPpcd.7572f0004a31 --database hsicTx2PxoLvZwefyscKJs --execute SHOW TABLES;",
+  "rows": [
+    {
+      "Tables_in_hsicTx2PxoLvZwefyscKJs": "__drizzle_migrations"
+    },
+    {
+      "Tables_in_hsicTx2PxoLvZwefyscKJs": "inventory_counts"
+    },
+    {
+      "Tables_in_hsicTx2PxoLvZwefyscKJs": "items"
+    },
+    {
+      "Tables_in_hsicTx2PxoLvZwefyscKJs": "purchaseOrderItems"
+    },
+    {
+      "Tables_in_hsicTx2PxoLvZwefyscKJs": "purchaseOrders"
+    },
+    {
+      "Tables_in_hsicTx2PxoLvZwefyscKJs": "shipmentItems"
+    },
+    {
+      "Tables_in_hsicTx2PxoLvZwefyscKJs": "shipments"
+    },
+    {
+      "Tables_in_hsicTx2PxoLvZwefyscKJs": "stockAdjustments"
+    },
+    {
+      "Tables_in_hsicTx2PxoLvZwefyscKJs": "stockLots"
+    },
+    {
+      "Tables_in_hsicTx2PxoLvZwefyscKJs": "suppliers"
+    },
+    {
+      "Tables_in_hsicTx2PxoLvZwefyscKJs": "users"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_hsicTx2PxoLvZwefyscKJs\n__drizzle_migrations\ninventory_counts\nitems\npurchaseOrderItems\npurchaseOrders\nshipmentItems\nshipments\nstockAdjustments\nstockLots\nsuppliers\nusers\n",
+  "stderr": "",
+  "execution_time_ms": 1523
+}

@@ -9,12 +9,16 @@ import {
   purchaseOrders,
   purchaseOrderItems,
   stockAdjustments,
+  shipments,
+  shipmentItems,
   InsertSupplier,
   InsertItem,
   InsertStockLot,
   InsertPurchaseOrder,
   InsertPurchaseOrderItem,
-  InsertStockAdjustment
+  InsertStockAdjustment,
+  InsertShipment,
+  InsertShipmentItem
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -365,3 +369,93 @@ export async function createStockAdjustment(data: InsertStockAdjustment) {
   const result = await db.insert(stockAdjustments).values(data);
   return result;
 }
+
+// ========== Shipments ==========
+
+export async function getAllShipments() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select({
+    id: shipments.id,
+    shipmentNumber: shipments.shipmentNumber,
+    shipmentDate: shipments.shipmentDate,
+    destination: shipments.destination,
+    shippedBy: shipments.shippedBy,
+    shippedByName: users.name,
+    notes: shipments.notes,
+    createdAt: shipments.createdAt,
+  })
+  .from(shipments)
+  .leftJoin(users, eq(shipments.shippedBy, users.id))
+  .orderBy(desc(shipments.shipmentDate));
+}
+
+export async function getShipmentById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select({
+    id: shipments.id,
+    shipmentNumber: shipments.shipmentNumber,
+    shipmentDate: shipments.shipmentDate,
+    destination: shipments.destination,
+    shippedBy: shipments.shippedBy,
+    shippedByName: users.name,
+    notes: shipments.notes,
+    createdAt: shipments.createdAt,
+  })
+  .from(shipments)
+  .leftJoin(users, eq(shipments.shippedBy, users.id))
+  .where(eq(shipments.id, id))
+  .limit(1);
+  
+  return result[0];
+}
+
+export async function getShipmentItems(shipmentId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select({
+    id: shipmentItems.id,
+    shipmentId: shipmentItems.shipmentId,
+    itemId: shipmentItems.itemId,
+    itemCode: items.code,
+    itemName: items.name,
+    unit: items.unit,
+    lotId: shipmentItems.lotId,
+    lotNumber: stockLots.lotNumber,
+    quantity: shipmentItems.quantity,
+  })
+  .from(shipmentItems)
+  .leftJoin(items, eq(shipmentItems.itemId, items.id))
+  .leftJoin(stockLots, eq(shipmentItems.lotId, stockLots.id))
+  .where(eq(shipmentItems.shipmentId, shipmentId));
+}
+
+export async function createShipment(data: InsertShipment) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(shipments).values(data);
+  return result;
+}
+
+export async function createShipmentItem(data: InsertShipmentItem) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(shipmentItems).values(data);
+  return result;
+}
+
+export async function deleteShipment(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Delete shipment items first
+  await db.delete(shipmentItems).where(eq(shipmentItems.shipmentId, id));
+  // Then delete the shipment
+  await db.delete(shipments).where(eq(shipments.id, id));
+}
+
+
