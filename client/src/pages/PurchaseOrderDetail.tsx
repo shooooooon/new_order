@@ -144,11 +144,11 @@ export default function PurchaseOrderDetail({ id }: { id: number }) {
               </TableCell>
               <TableCell className="text-right">{item.quantity}</TableCell>
               <TableCell className="text-right">
-                {item.unitPrice ? `¥${item.unitPrice.toLocaleString()}` : "-"}
+                {item.unitPrice ? `¥${Number(item.unitPrice).toLocaleString()}` : "-"}
               </TableCell>
               <TableCell className="text-right">
                 {item.unitPrice
-                  ? `¥${(item.quantity * item.unitPrice).toLocaleString()}`
+                  ? `¥${(item.quantity * Number(item.unitPrice)).toLocaleString()}`
                   : "-"}
               </TableCell>
             </TableRow>

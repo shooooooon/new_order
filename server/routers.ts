@@ -191,7 +191,10 @@ export const appRouter = router({
         for (const item of input.items) {
           await db.createPurchaseOrderItem({
             purchaseOrderId: orderId,
-            ...item,
+            itemId: item.itemId,
+            lotNumber: item.lotNumber,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice ? String(item.unitPrice) : undefined,
           });
         }
         

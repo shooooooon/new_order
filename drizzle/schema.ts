@@ -61,6 +61,7 @@ export const stockLots = mysqlTable("stockLots", {
   itemId: int("itemId").notNull(),
   lotNumber: varchar("lotNumber", { length: 100 }),
   quantity: int("quantity").notNull().default(0),
+  unitPrice: decimal("unitPrice", { precision: 10, scale: 2 }),
   receivedDate: timestamp("receivedDate").notNull(),
   expiryDate: timestamp("expiryDate"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -98,7 +99,7 @@ export const purchaseOrderItems = mysqlTable("purchaseOrderItems", {
   itemId: int("itemId").notNull(),
   lotNumber: varchar("lotNumber", { length: 100 }),
   quantity: int("quantity").notNull(),
-  unitPrice: int("unitPrice"),
+  unitPrice: decimal("unitPrice", { precision: 10, scale: 2 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
